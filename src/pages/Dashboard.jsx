@@ -1,4 +1,3 @@
-// src/pages/Dashboard.jsx
 import React, { useEffect, useMemo, useState, useCallback } from "react";
 import {
   Box,
@@ -27,6 +26,7 @@ const columns = [
   { id: "transaction_amount", label: "Transaction Amount", sortable: true },
   { id: "status", label: "Status", sortable: true },
   { id: "custom_order_id", label: "Custom Order ID", sortable: true },
+  { id: "payment_time", label: "Payment Time", sortable: true },
 ];
 
 export default function Dashboard() {
@@ -54,7 +54,16 @@ export default function Dashboard() {
     setLoading(true);
     setError("");
     try {
-      const res = await api.get("/transactions");
+      const res = await api.get("/transactions", {
+        params: {
+          limit: rowsPerPage,
+          page: page + 1,
+          sort: sortField,
+          order: sortOrder,
+        },
+        withCredentials: true,
+      });
+      console.log(res)
       const data = Array.isArray(res.data) ? res.data : (res.data.transactions || res.data);
       setAllTransactions(Array.isArray(data) ? data : []);
     } catch (err) {
@@ -64,7 +73,7 @@ export default function Dashboard() {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [page, rowsPerPage, sortField, sortOrder]);
 
   useEffect(() => {
     fetchTransactions();
@@ -111,7 +120,6 @@ export default function Dashboard() {
         Transactions Dashboard
       </Typography>
 
-      {/* 🔎 Search bar restored */}
       <Box sx={{ mb: 2, display: "flex", justifyContent: "flex-end" }}>
         <TextField
           variant="outlined"
@@ -162,18 +170,21 @@ export default function Dashboard() {
               ) : paged.length ? (
                 paged.map((tx, idx) => (
                   <TableRow key={tx.collect_id ?? idx} hover>
-                    <TableCell sx={{ fontFamily: "ui-monospace" }}>{tx.collect_id}</TableCell>
-                    <TableCell>{tx.school_id}</TableCell>
-                    <TableCell sx={{ textTransform: "capitalize" }}>{tx.gateway}</TableCell>
+                    <TableCell sx={{ fontFamily: "ui-monospace" }}>{tx.collect_id ?? "-"}</TableCell>
+                    <TableCell>{tx.school_id ?? "-"}</TableCell>
+                    <TableCell sx={{ textTransform: "capitalize" }}>{tx.gateway ?? "-"}</TableCell>
                     <TableCell align="right">{tx.order_amount ? `₹${tx.order_amount}` : "-"}</TableCell>
                     <TableCell align="right">{tx.transaction_amount ? `₹${tx.transaction_amount}` : "-"}</TableCell>
                     <TableCell>
                       <Box component="span" sx={{ px: 1, py: "2px", borderRadius: 1, ...getStatusBadge(tx.status) }}>
-                        {tx.status}
+                        {tx.status ?? "-"}
                       </Box>
                     </TableCell>
                     <TableCell sx={{ fontFamily: "ui-monospace", wordBreak: "break-all" }}>
                       {tx.custom_order_id ?? "-"}
+                    </TableCell>
+                    <TableCell>
+                      {tx.payment_time ? new Date(tx.payment_time).toLocaleString() : "-"}
                     </TableCell>
                   </TableRow>
                 ))
