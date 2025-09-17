@@ -34,9 +34,10 @@ export default function Navbar() {
   };
 
   const navLinks = [
+    { label: "Create Payment", path: "/" },
     { label: "Dashboard", path: "/dashboard" },
     { label: "By School", path: "/school-transactions" },
-    { label: "Status Check", path: "/check-status" },
+    { label: "Status Check", path: "/create-payment" },
   ];
 
   const drawer = (

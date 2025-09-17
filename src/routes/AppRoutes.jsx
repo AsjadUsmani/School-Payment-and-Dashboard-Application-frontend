@@ -7,6 +7,7 @@ import Dashboard from "../pages/Dashboard";
 import TransactionDetails from "../pages/TransactionDetails";
 import StatusCheck from "../pages/StatusCheck";
 import ProtectedRoute from "../components/ProtectedRoute";
+import CreatePayment from "../pages/CreatePayment";
 
 export default function AppRoutes() {
   return (
@@ -36,6 +37,14 @@ export default function AppRoutes() {
         element={
           <ProtectedRoute>
             <StatusCheck />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/create-payment"
+        element={
+          <ProtectedRoute>
+            <CreatePayment />
           </ProtectedRoute>
         }
       />
