@@ -11,9 +11,8 @@ import {
   TableContainer,
   TablePagination,
   TextField,
-  Autocomplete,
-  Button,
   Typography,
+  InputAdornment,
 } from "@mui/material";
 import { ArrowUpward, ArrowDownward, Search as SearchIcon } from "@mui/icons-material";
 import { useTheme } from "@mui/material/styles";
@@ -32,18 +31,14 @@ const columns = [
 
 export default function Dashboard() {
   const theme = useTheme();
-  const [searchParams, setSearchParams] = useSearchParams();
+  const [searchParams] = useSearchParams();
 
   const [allTransactions, setAllTransactions] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
-  const [statuses, setStatuses] = useState([]);
-  const [schools, setSchools] = useState([]);
   const [searchText, setSearchText] = useState("");
   const [debouncedSearch, setDebouncedSearch] = useState("");
-  const [fromDate, setFromDate] = useState("");
-  const [toDate, setToDate] = useState("");
 
   const [sortField, setSortField] = useState(searchParams.get("sort") || "payment_time");
   const [sortOrder, setSortOrder] = useState(searchParams.get("order") || "desc");
@@ -60,7 +55,6 @@ export default function Dashboard() {
     setError("");
     try {
       const res = await api.get("/transactions");
-      console.log(res)
       const data = Array.isArray(res.data) ? res.data : (res.data.transactions || res.data);
       setAllTransactions(Array.isArray(data) ? data : []);
     } catch (err) {
@@ -76,62 +70,16 @@ export default function Dashboard() {
     fetchTransactions();
   }, [fetchTransactions]);
 
-  const statusOptions = useMemo(() => {
-    const s = new Set();
-    allTransactions.forEach((t) => {
-      if (t.status) s.add(String(t.status).toLowerCase());
-    });
-    return Array.from(s);
-  }, [allTransactions]);
-
-  const schoolOptions = useMemo(() => {
-    const s = new Set();
-    allTransactions.forEach((t) => {
-      if (t.school_id) s.add(String(t.school_id));
-    });
-    return Array.from(s);
-  }, [allTransactions]);
-
   const filtered = useMemo(() => {
     const q = debouncedSearch?.toLowerCase?.() || "";
-
-    let list = allTransactions.filter((tx) => {
-      if (statuses.length > 0) {
-        const st = String(tx.status || "").toLowerCase();
-        if (!statuses.map(s => s.toLowerCase()).includes(st)) return false;
-      }
-      if (schools.length > 0) {
-        const sid = String(tx.school_id || "").toLowerCase();
-        const matchesSchool = schools.some((s) => sid.includes(String(s).toLowerCase()));
-        if (!matchesSchool) return false;
-      }
-      if (q) {
-        const collect = String(tx.collect_id || "").toLowerCase();
-        const gateway = String(tx.gateway || "").toLowerCase();
-        const school = String(tx.school_id || "").toLowerCase();
-        const custom = String(tx.custom_order_id || "").toLowerCase();
-        if (!(collect.includes(q) || gateway.includes(q) || school.includes(q) || custom.includes(q))) return false;
-      }
-      return true;
+    return allTransactions.filter((tx) => {
+      const collect = String(tx.collect_id || "").toLowerCase();
+      const gateway = String(tx.gateway || "").toLowerCase();
+      const school = String(tx.school_id || "").toLowerCase();
+      const custom = String(tx.custom_order_id || "").toLowerCase();
+      return collect.includes(q) || gateway.includes(q) || school.includes(q) || custom.includes(q);
     });
-
-    const sf = sortField || "payment_time";
-    const dir = sortOrder === "asc" ? 1 : -1;
-    list.sort((a, b) => {
-      const va = a[sf];
-      const vb = b[sf];
-      const na = Number(va);
-      const nb = Number(vb);
-      if (!Number.isNaN(na) && !Number.isNaN(nb)) return (na - nb) * dir;
-      const sa = String(va ?? "").toLowerCase();
-      const sb = String(vb ?? "").toLowerCase();
-      if (sa < sb) return -1 * dir;
-      if (sa > sb) return 1 * dir;
-      return 0;
-    });
-
-    return list;
-  }, [allTransactions, statuses, schools, debouncedSearch, sortField, sortOrder]);
+  }, [allTransactions, debouncedSearch]);
 
   const totalCount = filtered.length;
   const paged = useMemo(() => {
@@ -162,6 +110,25 @@ export default function Dashboard() {
       <Typography variant="h4" sx={{ mb: 2, color: "primary.main" }}>
         Transactions Dashboard
       </Typography>
+
+      {/* 🔎 Search bar restored */}
+      <Box sx={{ mb: 2, display: "flex", justifyContent: "flex-end" }}>
+        <TextField
+          variant="outlined"
+          placeholder="Search transactions..."
+          value={searchText}
+          onChange={(e) => setSearchText(e.target.value)}
+          size="small"
+          sx={{ width: { xs: "100%", sm: 300 } }}
+          InputProps={{
+            startAdornment: (
+              <InputAdornment position="start">
+                <SearchIcon fontSize="small" />
+              </InputAdornment>
+            ),
+          }}
+        />
+      </Box>
 
       <Paper variant="outlined">
         <TableContainer sx={{ overflowX: "hidden" }}>
@@ -194,21 +161,7 @@ export default function Dashboard() {
                 </TableRow>
               ) : paged.length ? (
                 paged.map((tx, idx) => (
-                  <TableRow
-                    key={tx.collect_id ?? idx}
-                    hover
-                    sx={{
-                      transition: "transform 0.2s ease, box-shadow 0.2s ease",
-                      "&:hover": {
-                        transform: "scale(1.02)",
-                        boxShadow: theme.shadows[4],
-                        backgroundColor:
-                          theme.palette.mode === "dark"
-                            ? "rgba(255,255,255,0.05)"
-                            : "rgba(0,0,0,0.02)",
-                      },
-                    }}
-                  >
+                  <TableRow key={tx.collect_id ?? idx} hover>
                     <TableCell sx={{ fontFamily: "ui-monospace" }}>{tx.collect_id}</TableCell>
                     <TableCell>{tx.school_id}</TableCell>
                     <TableCell sx={{ textTransform: "capitalize" }}>{tx.gateway}</TableCell>
@@ -241,7 +194,10 @@ export default function Dashboard() {
           page={page}
           onPageChange={(e, newPage) => setPage(newPage)}
           rowsPerPage={rowsPerPage}
-          onRowsPerPageChange={(e) => { setRowsPerPage(parseInt(e.target.value, 10)); setPage(0); }}
+          onRowsPerPageChange={(e) => {
+            setRowsPerPage(parseInt(e.target.value, 10));
+            setPage(0);
+          }}
           rowsPerPageOptions={[5, 10, 25, 50]}
         />
       </Paper>

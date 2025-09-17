@@ -12,8 +12,7 @@ export default function ProtectedRoute({ children }) {
     let mounted = true;
     const check = async () => {
       try {
-        // Use any protected route to validate cookie
-        await axios.get(`${API_BASE}/transactions`, { withCredentials: true });
+        await axios.get(`${API_BASE}/api/auth/me`, { withCredentials: true });
         if (mounted) setAuthed(true);
       } catch (err) {
         if (mounted) setAuthed(false);
@@ -24,6 +23,7 @@ export default function ProtectedRoute({ children }) {
     check();
     return () => { mounted = false; };
   }, []);
+
 
   if (loading) return <div style={{ padding: 20 }}>Checking session...</div>;
   if (!authed) return <Navigate to="/" replace />;
